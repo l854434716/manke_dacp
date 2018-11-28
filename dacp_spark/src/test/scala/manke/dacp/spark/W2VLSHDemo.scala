@@ -41,7 +41,7 @@ object W2VLSHDemo {
       .setVectorSize(15)
       .setMinCount(0);
 
-    //这里将每一行的行号作为doc id，每一行的分词结果生成tf词频向量
+    //这里将每一行的行号作为doc id，每一行的分词结果生成词频向量
     val sourcedf=sql.sql("select  id, split(metadata,',') as metadata from  manke_ods.t_ods_bibi_anime_metadata")
 
 
