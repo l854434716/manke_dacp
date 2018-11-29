@@ -46,6 +46,7 @@ object BibiAnimeW2VEuclideanDistanceSim {
     val corrDf = brpDf.withColumn("season_id",getIdFun(col("datasetA")))
       .withColumn("compare_season_id",getIdFun(col("datasetB")))
       .drop("datasetA").drop("datasetB")
+      .filter(row=>{row.getAs[Int]("season_id")!=row.getAs[Int]("compare_season_id")})
     .write.mode(SaveMode.Overwrite).parquet("/user/hive/warehouse/manke_dw.db/t_bibi_anime_w2v_lsh_sim/");
 
 
