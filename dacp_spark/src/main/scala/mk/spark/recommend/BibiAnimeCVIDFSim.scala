@@ -1,10 +1,19 @@
 package mk.spark.recommend
 
+import java.util.Properties
+
 import org.apache.spark.SparkConf
 import org.apache.spark.ml.feature.{CountVectorizer, IDF}
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.ml.linalg.{SparseVector => SV}
 object BibiAnimeCVIDFSim {
+  val  url="jdbc:mysql://192.168.53.92:3306/mk?characterEncoding=utf-8&amp;autoReconnect=true";
+
+  val  connectionProperties=new  Properties()
+  connectionProperties.put("user","root")
+  connectionProperties.put("password","cloudsmaker.net@123")
+  connectionProperties.put("driver","com.mysql.jdbc.Driver")
+
 
   def main(args: Array[String]): Unit = {
 
@@ -45,8 +54,11 @@ object BibiAnimeCVIDFSim {
     val  cosSimDf=
       sql.sql("select a.id as season_id  , b.id  as  compare_season_id,   cosSim(a.idf_col,b.idf_col) as  cos_sim  from  " +
         "v_bibi_anime_cv_idf a  cross join   v_bibi_anime_cv_idf b  where  a.id!=b.id")
-
-    cosSimDf.filter(_.getAs[Double](2)>0).write.mode(SaveMode.Overwrite).parquet("/user/hive/warehouse/manke_dw.db/t_bibi_anime_cvidf_cos_sim/")
+    import   org.apache.spark.sql.functions._
+    cosSimDf.filter(_.getAs[Double](2)>0).repartition(4,col("season_id"))
+      .write.mode(SaveMode.Overwrite)
+      .jdbc(url,"t_bibi_anime_cvidf_cos_sim",connectionProperties)
+      //.parquet("/user/hive/warehouse/manke_dw.db/t_bibi_anime_cvidf_cos_sim/")
   }
 
 }
