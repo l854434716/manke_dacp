@@ -70,10 +70,10 @@ object TFIDFDemo1 {
       bsv1.dot(bsv2).asInstanceOf[Double] / (norm(bsv1) * norm(bsv2))
     })
     val  cosSimDf=
-    sql.sql("select a.id as id  , b.id  as  oid,   cosSim(a.idf_col,b.idf_col) as  cos_sim_value  from  " +
-      "v_bibi_anime_tf_idf a  cross join   v_bibi_anime_tf_idf b  where  a.id!=b.id")
+      sql.sql("select a.id as season_id  , b.id  as  compare_season_id,   cosSim(a.idf_col,b.idf_col) as  cos_sim  from  " +
+        "v_bibi_anime_tf_idf a  cross join   v_bibi_anime_tf_idf b  where  a.id!=b.id")
 
-    cosSimDf.show(100)
+    cosSimDf.filter(_.getAs[Double](2)>0).show(10)
     /*val num_idf_pairs = tf_num_pairs.rdd.mapValues(v => idf.transform(v))
     //广播一份tf-idf向量集
     val b_num_idf_pairs = sql.sparkContext.broadcast(num_idf_pairs.collect())

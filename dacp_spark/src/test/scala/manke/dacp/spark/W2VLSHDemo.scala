@@ -39,14 +39,14 @@ object W2VLSHDemo {
       .setInputCol("metadata")
       .setOutputCol("wordvec")
       .setVectorSize(15)
-      .setMinCount(0);
+      .setMinCount(1);
 
     //这里将每一行的行号作为doc id，每一行的分词结果生成词频向量
     val sourcedf=sql.sql("select  id, split(metadata,',') as metadata from  manke_ods.t_ods_bibi_anime_metadata")
 
 
     val wvModel = word2Vec.fit(sourcedf);
-    val w2vDf = wvModel.transform(sourcedf);
+    val w2vDf = wvModel.transform(sourcedf).drop("metadata");
 
     //获取LSH模型
     val brp = new BucketedRandomProjectionLSH()
@@ -57,7 +57,7 @@ object W2VLSHDemo {
     val brpModel = brp.fit(w2vDf)
     val tsDf = brpModel.transform(w2vDf)
 
-    val brpDf = brpModel.approxSimilarityJoin(tsDf, tsDf, 0.015, "EuclideanDistance")
+    val brpDf = brpModel.approxSimilarityJoin(tsDf, tsDf, 0.005, "euclidean_distance")
 
     import org.apache.spark.sql.functions._
 
@@ -66,9 +66,9 @@ object W2VLSHDemo {
     })
 
 
-    val corrDf = brpDf.withColumn("id",getIdFun(col("datasetA")))
-      .withColumn("id_sim",getIdFun(col("datasetB")))
-      .drop("datasetA").drop("datasetB").drop("EuclideanDistance");
+    val corrDf = brpDf.withColumn("season_id",getIdFun(col("datasetA")))
+      .withColumn("compare_season_id",getIdFun(col("datasetB")))
+      .drop("datasetA").drop("datasetB");
 
     corrDf.createOrReplaceTempView("test");
 

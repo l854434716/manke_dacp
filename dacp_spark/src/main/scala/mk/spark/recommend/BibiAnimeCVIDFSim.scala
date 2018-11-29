@@ -1,33 +1,14 @@
-package manke.dacp.spark
+package mk.spark.recommend
 
-import java.util.Map
-import java.util.function.Consumer
-
-import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkConf
 import org.apache.spark.ml.feature.{CountVectorizer, IDF}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.ml.linalg.{SparseVector => SV}
-object CountVectorizerIDFDemo {
-
+object BibiAnimeCVIDFSim {
 
   def main(args: Array[String]): Unit = {
 
-      val  sparkConf=new  SparkConf().setMaster("local").setAppName("CountVectorizerIDFDemo")
-
-
-    val hadoopConf = new Configuration();
-    hadoopConf.addResource(this.getClass.getClassLoader.getResourceAsStream("core-site.xml"))
-    hadoopConf.addResource(this.getClass.getClassLoader.getResourceAsStream("hdfs-site.xml"))
-    hadoopConf.addResource(this.getClass.getClassLoader.getResourceAsStream("yarn-site.xml"))
-    hadoopConf.addResource(this.getClass.getClassLoader.getResourceAsStream("hive-site.xml"))
-
-
-    hadoopConf.iterator().forEachRemaining(new Consumer[java.util.Map.Entry[String,String]](){
-      override def accept(t: Map.Entry[String, String]): Unit = {
-        sparkConf.set(t.getKey,t.getValue)
-      }
-    })
+    val sparkConf = new SparkConf().setAppName("BibiAnimeCVIDFSim")
 
     val  sql=SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
 
@@ -65,12 +46,7 @@ object CountVectorizerIDFDemo {
       sql.sql("select a.id as season_id  , b.id  as  compare_season_id,   cosSim(a.idf_col,b.idf_col) as  cos_sim  from  " +
         "v_bibi_anime_cv_idf a  cross join   v_bibi_anime_cv_idf b  where  a.id!=b.id")
 
-
-    cosSimDf.filter(_.getAs[Double](2)>0)//.show(100)
-
-
-
-
+    cosSimDf.filter(_.getAs[Double](2)>0).write.mode(SaveMode.Overwrite).parquet("/user/hive/warehouse/manke_dw.db/t_bibi_anime_cvidf_cos_sim/")
   }
 
 }
