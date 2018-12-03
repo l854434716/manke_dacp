@@ -8,6 +8,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.recommendation.ALS
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.ml.linalg.{SparseVector => SV}
+//import  org.jblas.DoubleMatrix  breeze.linalg._   ml.linalg  区别
 
 object ALSExample {
 
@@ -84,9 +86,20 @@ object ALSExample {
     val movies = ratings.select(als.getItemCol).distinct().limit(3)
     val movieSubSetRecs = model.recommendForItemSubset(movies, 10)*/
     // $example off$
-    userRecs.show()
-    movieRecs.show()
 
+    spark.udf.register("cos_sim",(sv1:SV,sv2:SV)=>{
+      import breeze.linalg._
+      val bsv1 = new SparseVector[Double](sv1.indices, sv1.values, sv1.size)
+      val bsv2 = new SparseVector[Double](sv2.indices, sv2.values, sv2.size)
+      bsv1.dot(bsv2).asInstanceOf[Double] / (norm(bsv1) * norm(bsv2))
+
+    })
+
+    model.itemFactors.createTempView("item_factors")
+    val  cosSimDf=
+    spark.sql("select  a.id  as  media_id  , b.id  compare_media_id  , cos_sim(a.features,b.features) cos_sim  from  item_factors a  cross join  item_factors  b  where  a.id!=b.id ")
+
+    cosSimDf.filter(_.getAs[Double](2)>0).show()
     spark.stop()
   }
 }
