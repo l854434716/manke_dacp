@@ -46,11 +46,11 @@ object TestMysqlRead {
 
     // $example on$
    // spark.read.jdbc(url,"t_bibi_long_comments",connectionProperties).createTempView("t_bibi_long_comments")
-    spark.read.jdbc(url,"t_bibi_short_comments","mid",1000,3000,10,connectionProperties).createTempView("t_bibi_short_comments")
+    spark.read.jdbc(url,"t_bibi_short_comments","mid",1000000,5000000,10,connectionProperties).createTempView("t_bibi_short_comments")
 
-    spark.sql("select  *  from  t_bibi_short_comments").show(100)
+    println(spark.sql("select  *  from  t_bibi_short_comments").count())
 
-    Thread.sleep(1000000000)
+    Thread.sleep(1000000)
 
     spark.stop()
   }
