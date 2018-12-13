@@ -1,6 +1,6 @@
 package mk.spark.util
 
-object TImeUtil {
+object TimeUtil {
 
   val  MILLSINONEDAY= 1000* 60 * 60 * 24;
 
