@@ -1,0 +1,6 @@
+./spark-submit --num-executors 3 --executor-cores 3 --executor-memory 512M  --master yarn  --deploy-mode cluster   --conf spark.sql.shuffle.partitions=3  --class mk.spark.text.Mongodb2Hive   /root/dacp-spark-1.0.0-jar-with-dependencies.jar
+
+
+
+
+

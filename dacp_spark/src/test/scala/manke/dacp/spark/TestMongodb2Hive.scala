@@ -6,8 +6,8 @@ import java.util.function.Consumer
 import mk.spark.util.TimeUtil
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkConf
-import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.{current_date, date_sub}
+import org.apache.spark.sql.{SaveMode, SparkSession}
 
 object TestMongodb2Hive {
 
@@ -18,6 +18,8 @@ object TestMongodb2Hive {
     if (args.length==1){
       _time=args(0).toLong
     }
+
+    _time=0
 
     val  sparkConf  = new  SparkConf().setAppName("TestMongodb2Hive")
 
@@ -53,7 +55,8 @@ object TestMongodb2Hive {
              .filter(_.getAs[Int]("ctime").toLong*1000>=_time)
              .select("_id").mapPartitions(_.map(_.getString(0).toLong)).collect().toIndexedSeq
 
-    println(_ids)
+
+    println(_ids.length)
     val  _longCommentsIdsBc= spark.sparkContext.broadcast(_ids)
 
     val  longCommentsInputUri="mongodb://192.168.53.207:27017/spider.bibi_animes_detail_comment"
@@ -64,9 +67,13 @@ object TestMongodb2Hive {
         "spark.mongodb.input.partitionerOptions.partitionSizeMB"-> "32"))
       .load()
 
-    val lcds = originLongcommentsDf.filter(row=>{ _longCommentsIdsBc.value.contains(row.getAs[String]("_id").toLong)})
-      .select("review_id", "media_id", "comment_detail").toDF("review_id", "media_id", "content")
-      .show(5)
+    val lcds = originLongcommentsDf.filter(row=>{ !_longCommentsIdsBc.value.contains(row.getAs[String]("_id").toLong)})
+      .select("review_id", "media_id")
+      .withColumn("day",date_sub(current_date(),1))
+
+
+    println(lcds.show(2000))
+
 
 
     val  shortCommentsInputUri="mongodb://192.168.53.207:27017/spider.bibi_animes_short_comment_info"
@@ -77,15 +84,19 @@ object TestMongodb2Hive {
         "spark.mongodb.input.partitionerOptions.partitionSizeMB"-> "32"))
       .load()
 
-    import  org.apache.spark.sql.functions._;
+    import  org.apache.spark.sql.functions._
 
     val  getMediaId=udf((a1:String ,review_id:Int )=>{
-      a1.substring(0,a1.length-review_id.toString.length+1).toInt
+      a1.substring(0,a1.length-review_id.toString.length).toInt
     })
 
     val  scds=originShortCommentsDf.filter(_.getAs[Int]("ctime").toLong*1000>=_time)//.filter(originShortCommentsDf("ctime")*1000 >=_time)
-      .select($"review_id",getMediaId($"_id",$"review_id") as("media_id"),$"content",$"ctime")
-      //.show(5)
+      .select($"_id",$"review_id",getMediaId($"_id",$"review_id") as("media_id"),$"content" as("comment_detail"))
+      .withColumn("day",date_sub(current_date(),1)).show()
+
+
+    //lcds.write.mode(SaveMode.Overwrite).partitionBy("day").saveAsTable("manke_dw.bibi_long_comments");
+    //scds.write.mode(SaveMode.Overwrite).partitionBy("day").saveAsTable("manke_dw.bibi_short_comments");
 
 
   }
