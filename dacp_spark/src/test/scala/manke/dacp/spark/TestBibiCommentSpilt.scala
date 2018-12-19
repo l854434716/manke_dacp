@@ -6,8 +6,10 @@ import mk.spark.text.MediaWordNumber
 import org.ansj.recognition.impl.StopRecognition
 import org.ansj.splitWord.Analysis
 import org.ansj.splitWord.analysis.ToAnalysis
+import org.apache.commons.lang3.StringUtils
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+
 import scala.collection.JavaConverters._
 import scala.io.Source
 
@@ -41,7 +43,7 @@ object TestBibiCommentSpilt {
         rows.flatMap(row=>{
           val  media_id=row.getString(0)
           val  comment_detail =row.getString(1)
-          analysis.parseStr(comment_detail).recognition(filter).iterator().asScala
+          analysis.parseStr(comment_detail).recognition(filter).iterator().asScala.filter(term=>{StringUtils.isNotBlank(term.getRealName.trim)})
             .map(term=>MediaWordNumber(term.getRealName,media_id,1))
 
         })
@@ -55,16 +57,16 @@ object TestBibiCommentSpilt {
         rows.flatMap(row=>{
           val  media_id=row.getInt(0).toString
           val  comment_detail =row.getString(1)
-          analysis.parseStr(comment_detail).recognition(filter).iterator().asScala
+          analysis.parseStr(comment_detail).recognition(filter).iterator().asScala.filter(term=>{StringUtils.isNotEmpty(term.getRealName.trim)})
             .map(term=>MediaWordNumber(term.getRealName,media_id,1))
 
         })
       }).createOrReplaceTempView("bibi_short_comments_words")
 
 
-    spark.sql("select  word,media_id ,sum(num) as  word_num from bibi_short_comments_words  group by  media_id,word   sort by  word_num  desc")
-        .show()
-
+    val  row=
+    spark.sql(" select  *  from ( select media_id,word,word_num, row_number() Over (partition by media_id  order by  word_num desc) line from (select  word,media_id ,sum(num) as  word_num from bibi_long_comments_words  group by  media_id,word ) t ) t1  where media_id=3312 and line<11 ")
+        .show(50)
 
 
     spark.stop()
@@ -77,4 +79,9 @@ object TestBibiCommentSpilt {
     new  ToAnalysis()
   }
 
+
+
+  def  isBlankStr(str:String):Boolean={
+    StringUtils
+  }
 }

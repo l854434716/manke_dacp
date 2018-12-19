@@ -13,9 +13,6 @@ object TestAnsjStopWord {
   def main(args: Array[String]): Unit = {
 
 
-
-
-
     val filter = new StopRecognition()
     //加入停用词
     filter.insertStopWords(util.Arrays.asList("r","n"))
